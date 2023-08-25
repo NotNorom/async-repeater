@@ -13,6 +13,7 @@ use tokio::sync::mpsc::{channel, Receiver};
 use tokio_stream::{self, Stream, StreamExt};
 use tokio_util::time::{delay_queue, DelayQueue};
 
+/// Repeats structs after user defined Duration.
 pub struct Repeater<E>
 where
     E: RepeaterEntry + Clone + Unpin + Send,
@@ -25,6 +26,7 @@ impl<E> Repeater<E>
 where
     E: RepeaterEntry + Clone + Unpin + Send + Sync,
 {
+    /// Create a new repeater with given capacity
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             entries: HashMap::with_capacity(capacity),
@@ -32,6 +34,10 @@ where
         }
     }
 
+    /// Insert entry into repeater
+    ///
+    /// If entry with same key already exists, it will be replaced.
+    /// Replacement will also reset the repetition.
     pub fn insert(&mut self, e: E) {
         if let Some((current_item, queue_key)) = self.entries.get_mut(&e.key()) {
             self.queue.reset(queue_key, e.when());
@@ -42,21 +48,33 @@ where
         }
     }
 
+    /// Remove entry with key from repeater
     pub fn remove(&mut self, key: &E::Key) {
         let Some((_, key)) = self.entries.remove(key) else { return };
         self.queue.remove(&key);
     }
 
+    /// Clear the repeater. This removes all entries.
     pub fn clear(&mut self) {
         self.queue.clear();
         self.entries.clear();
     }
 
+    /// Number of entries in the repeater
     pub fn len(&self) -> usize {
         self.queue.len()
     }
 
-    pub async fn run_with_async_callback<F, Fut>(self, callback: F) -> RepeaterHandle<E>
+    /// Return true if repeater is empty
+    pub fn is_empty(&self) -> bool {
+        self.queue.is_empty()
+    }
+
+    /// Starts the repeater in a background task
+    ///
+    /// This consumes the repeater and returns a [`RepeaterHandle`] which allows communication with
+    /// the background task.
+    pub fn run_with_async_callback<F, Fut>(self, callback: F) -> RepeaterHandle<E>
     where
         F: FnMut(E) -> Fut + Send + 'static,
         Fut: Future<Output = ()> + Send + 'static,
@@ -67,8 +85,11 @@ where
         RepeaterHandle::new(tx)
     }
 
-    /// Separate function to decrease indention level a bit
-    async fn handle_messages<F, Fut>(mut self, mut rx: Receiver<Message<E>>, mut callback: F) -> ()
+    /// Handle communication from the [`RepeaterHandle`].
+    ///
+    /// It's mainly a separate function to decrease indention inside [`Self::run_with_async_callback`].
+    /// This is run in a separate task
+    async fn handle_messages<F, Fut>(mut self, mut rx: Receiver<Message<E>>, mut callback: F)
     where
         F: FnMut(E) -> Fut + Send + 'static,
         Fut: Future<Output = ()> + Send,
@@ -81,23 +102,30 @@ where
                         Message::Remove(key) => self.remove(&key),
                         Message::Clear => { self.clear()},
                         Message::Stop => { break },
+                        Message::Len(reply_sender) => { let _ = reply_sender.send(self.len()); }
+                        Message::IsEmtpy(reply_sender) => { let _ = reply_sender.send(self.is_empty()); }
                     }
                 }
                 Some(entry) = self.next() => {
-                    // rescheduling before running the callback to be more accurate to the time
-                    self.insert(entry.clone());
                     callback(entry).await;
                 }
             }
         }
     }
 
+    /// Poll for a new item.
+    ///
+    /// If an item is available it will also be re-inserted
     fn poll_next(&mut self, cx: &mut Context<'_>) -> Poll<Option<E>> {
         let entry_id: Option<E::Key> =
-            ready!(self.queue.poll_expired(cx)).map(|entry| entry.into_inner());
+            ready!(self.queue.poll_expired(cx)).map(delay_queue::Expired::into_inner);
         if let Some(entry_id) = entry_id {
-            let (entry, _) = self.entries.remove(&entry_id).unwrap();
-            return Poll::Ready(Some(entry));
+            let (entry, queue_key) = self.entries.get_mut(&entry_id).unwrap();
+
+            let new_queue_key = self.queue.insert(entry.key(), entry.when());
+            *queue_key = new_queue_key;
+
+            return Poll::Ready(Some(entry.clone()));
         }
 
         Poll::Pending

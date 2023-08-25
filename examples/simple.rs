@@ -32,8 +32,7 @@ impl RepeaterEntry for Entry {
 async fn main() {
     // create and start the repeater
     let handle = async_repeater::Repeater::with_capacity(25)
-        .run_with_async_callback(|entry| async move { println!("Popped {entry:?}") })
-        .await;
+        .run_with_async_callback(|entry| async move { println!("Popped {entry:?}") });
 
     // create entries with the same interval
     let dur = Duration::from_secs(5);
@@ -41,7 +40,7 @@ async fn main() {
 
     // insert the entries into the repeater with 1 second delay in between
     for repetition in repetition {
-        handle.insert(repetition).await;
+        handle.insert(repetition).await.unwrap();
         tokio::time::sleep(Duration::from_secs(1)).await;
     }
 
@@ -49,6 +48,6 @@ async fn main() {
     // If this wasn't there, the program would exit immidiatly without running
     // a single repetition
     tokio::signal::ctrl_c().await.unwrap();
-    handle.stop().await;
+    handle.stop().await.unwrap();
     println!("Stopping cycler");
 }
