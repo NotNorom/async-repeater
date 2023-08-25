@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use tokio::sync::{
     mpsc::{self},
     oneshot::{self, channel},
@@ -65,9 +67,16 @@ where
     }
 }
 
-#[derive(thiserror::Error, Debug)]
-#[error("Connection to repeater lost")]
+
+
+#[derive(Debug)]
 pub struct ConnectionLost;
+
+impl Display for ConnectionLost {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Connection to repeater lost")
+    }
+}
 
 impl<T> From<mpsc::error::SendError<T>> for ConnectionLost {
     fn from(_: mpsc::error::SendError<T>) -> Self {
