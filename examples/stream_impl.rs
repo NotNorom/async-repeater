@@ -5,7 +5,6 @@ use async_repeater::{Repeater, RepeaterEntry};
 use std::time::Duration;
 use tokio_stream::StreamExt;
 
-
 /// Most basic struct for this to work.
 /// Only carries an id and an interval
 #[derive(Debug, Clone)]

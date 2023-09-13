@@ -117,8 +117,7 @@ where
     ///
     /// If an item is available it will also be re-inserted
     fn poll_next(&mut self, cx: &mut Context<'_>) -> Poll<Option<E>> {
-        let entry_id: Option<E::Key> =
-            ready!(self.queue.poll_expired(cx)).map(delay_queue::Expired::into_inner);
+        let entry_id: Option<E::Key> = ready!(self.queue.poll_expired(cx)).map(delay_queue::Expired::into_inner);
         if let Some(entry_id) = entry_id {
             let (entry, queue_key) = self.entries.get_mut(&entry_id).unwrap();
 
@@ -138,10 +137,7 @@ where
 {
     type Item = E;
 
-    fn poll_next(
-        self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Option<<Self as Stream>::Item>> {
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<<Self as Stream>::Item>> {
         Repeater::poll_next(self.get_mut(), cx)
     }
 }

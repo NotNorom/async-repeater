@@ -67,8 +67,6 @@ where
     }
 }
 
-
-
 #[derive(Debug)]
 pub struct ConnectionLost;
 

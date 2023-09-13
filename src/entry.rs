@@ -10,7 +10,7 @@ pub trait RepeaterEntry {
     /// Duration after which the entry should be repeated
     fn when(&self) -> Duration;
     /// Duration after which the first repetition should start.
-    /// 
+    ///
     /// If not implemented, the first repetition starts instantly.
     fn delay(&self) -> Duration {
         Duration::default()
