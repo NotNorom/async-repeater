@@ -78,7 +78,7 @@ where
     /// the background task.
     pub fn run_with_async_callback<F, Fut>(self, callback: F) -> RepeaterHandle<E>
     where
-        F: FnMut(E, RepeaterHandle<E>) -> Fut + Send + 'static,
+        F: FnOnce(E, RepeaterHandle<E>) -> Fut + Send + 'static + Clone,
         Fut: Future<Output = ()> + Send + 'static,
     {
         let (tx, rx) = channel(128);
@@ -93,10 +93,10 @@ where
     ///
     /// It's mainly a separate function to decrease indention inside [`Self::run_with_async_callback`].
     /// This is run in a separate task
-    async fn handle_messages<F, Fut>(mut self, mut rx: Receiver<Message<E>>, handle: RepeaterHandle<E>, mut callback: F)
+    async fn handle_messages<F, Fut>(mut self, mut rx: Receiver<Message<E>>, handle: RepeaterHandle<E>, callback: F)
     where
-        F: FnMut(E, RepeaterHandle<E>) -> Fut + Send + 'static,
-        Fut: Future<Output = ()> + Send,
+        F: FnOnce(E, RepeaterHandle<E>) -> Fut + Send + 'static + Clone,
+        Fut: Future<Output = ()> + Send + 'static,
     {
         loop {
             tokio::select! {
@@ -111,7 +111,9 @@ where
                     }
                 }
                 Some(entry) = self.next() => {
-                    callback(entry, handle.clone()).await;
+                    let cb = callback.clone();
+
+                    (cb)(entry, handle.clone()).await;
                 }
             }
         }
