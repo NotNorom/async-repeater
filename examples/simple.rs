@@ -32,7 +32,7 @@ impl RepeaterEntry for Entry {
 async fn main() {
     // create and start the repeater
     let handle = async_repeater::Repeater::with_capacity(25)
-        .run_with_async_callback(|entry| async move { println!("Popped {entry:?}") });
+        .run_with_async_callback(|entry, _| async move { println!("Popped {entry:?}") });
 
     // create entries with the same interval
     let dur = Duration::from_secs(5);

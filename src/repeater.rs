@@ -50,7 +50,9 @@ where
 
     /// Remove entry with key from repeater
     pub fn remove(&mut self, key: &E::Key) {
-        let Some((_, key)) = self.entries.remove(key) else { return };
+        let Some((_, key)) = self.entries.remove(key) else {
+            return;
+        };
         self.queue.remove(&key);
     }
 
@@ -76,22 +78,24 @@ where
     /// the background task.
     pub fn run_with_async_callback<F, Fut>(self, callback: F) -> RepeaterHandle<E>
     where
-        F: FnMut(E) -> Fut + Send + 'static,
+        F: FnMut(E, RepeaterHandle<E>) -> Fut + Send + 'static,
         Fut: Future<Output = ()> + Send + 'static,
     {
         let (tx, rx) = channel(128);
-        tokio::spawn(self.handle_messages(rx, callback));
+        let handle = RepeaterHandle::new(tx);
 
-        RepeaterHandle::new(tx)
+        tokio::spawn(self.handle_messages(rx, handle.clone(), callback));
+
+        handle
     }
 
     /// Handle communication from the [`RepeaterHandle`].
     ///
     /// It's mainly a separate function to decrease indention inside [`Self::run_with_async_callback`].
     /// This is run in a separate task
-    async fn handle_messages<F, Fut>(mut self, mut rx: Receiver<Message<E>>, mut callback: F)
+    async fn handle_messages<F, Fut>(mut self, mut rx: Receiver<Message<E>>, handle: RepeaterHandle<E>, mut callback: F)
     where
-        F: FnMut(E) -> Fut + Send + 'static,
+        F: FnMut(E, RepeaterHandle<E>) -> Fut + Send + 'static,
         Fut: Future<Output = ()> + Send,
     {
         loop {
@@ -107,7 +111,7 @@ where
                     }
                 }
                 Some(entry) = self.next() => {
-                    callback(entry).await;
+                    callback(entry, handle.clone()).await;
                 }
             }
         }
