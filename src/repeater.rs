@@ -38,12 +38,16 @@ where
     ///
     /// If entry with same key already exists, it will be replaced.
     /// Replacement will also reset the repetition.
+    ///
+    /// Insertion respects the delay() call
     pub fn insert(&mut self, e: E) {
+        let interval = if let Some(delay) = e.delay() { delay } else { e.when() };
+
         if let Some((current_item, queue_key)) = self.entries.get_mut(&e.key()) {
-            self.queue.reset(queue_key, e.when());
+            self.queue.reset(queue_key, interval);
             *current_item = e;
         } else {
-            let queue_key = self.queue.insert(e.key(), e.when());
+            let queue_key = self.queue.insert(e.key(), interval);
             self.entries.insert(e.key(), (e.clone(), queue_key));
         }
     }
@@ -99,10 +103,20 @@ where
         Fut: Future<Output = ()> + Send + 'static,
     {
         loop {
+            let cb = callback.clone();
+            let handle = handle.clone();
+
             tokio::select! {
                 Some(message) = rx.recv() => {
                     match message {
-                        Message::Insert(entry) => self.insert(entry),
+                        Message::Insert(entry) => {
+                            self.insert(entry.clone());
+
+                            // run callback once, right after insertion ONLY IF there is no delay
+                            if entry.delay().is_none() {
+                                tokio::spawn((cb)(entry, handle));
+                            }
+                        },
                         Message::Remove(key) => self.remove(&key),
                         Message::Clear => { self.clear()},
                         Message::Stop => { break },
@@ -111,9 +125,7 @@ where
                     }
                 }
                 Some(entry) = self.next() => {
-                    let cb = callback.clone();
-
-                    (cb)(entry, handle.clone()).await;
+                    tokio::spawn((cb)(entry, handle));
                 }
             }
         }
@@ -121,11 +133,14 @@ where
 
     /// Poll for a new item.
     ///
-    /// If an item is available it will also be re-inserted
+    /// If an item is available it will also be re-inserted.
+    /// Re-insertions ignore the delay and will only resspect the when.
     fn poll_next(&mut self, cx: &mut Context<'_>) -> Poll<Option<E>> {
         let entry_id: Option<E::Key> = ready!(self.queue.poll_expired(cx)).map(delay_queue::Expired::into_inner);
         if let Some(entry_id) = entry_id {
             let (entry, queue_key) = self.entries.get_mut(&entry_id).unwrap();
+
+            entry.reset_delay();
 
             let new_queue_key = self.queue.insert(entry.key(), entry.when());
             *queue_key = new_queue_key;

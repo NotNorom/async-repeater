@@ -29,6 +29,8 @@ impl RepeaterEntry for Entry {
     fn key(&self) -> Self::Key {
         self.id
     }
+
+    fn reset_delay(&mut self) {}
 }
 
 #[tokio::main(flavor = "current_thread")]

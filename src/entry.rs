@@ -9,12 +9,18 @@ pub trait RepeaterEntry {
 
     /// Duration after which the entry should be repeated
     fn when(&self) -> Duration;
+
     /// Duration after which the first repetition should start.
     ///
     /// If not implemented, the first repetition starts instantly.
-    fn delay(&self) -> Duration {
-        Duration::default()
+    fn delay(&self) -> Option<Duration> {
+        None
     }
+
+    /// Reset the delay
+    /// After calling this function, the next call to [`RepeaterEntry::delay`] should return `None`.
+    fn reset_delay(&mut self);
+
     /// To identify the entry.
     /// We don't want to store the whole entry in the underlying queue,
     /// but only a key
