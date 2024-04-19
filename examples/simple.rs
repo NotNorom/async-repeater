@@ -32,9 +32,10 @@ impl RepeaterEntry for Entry {
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
+    let callback = |entry, _| async move { println!("Popped {entry:?}") };
+
     // create and start the repeater
-    let handle = async_repeater::Repeater::with_capacity(25)
-        .run_with_async_callback(|entry, _| async move { println!("Popped {entry:?}") });
+    let handle = async_repeater::Repeater::with_capacity(25).run_with_async_callback(callback);
 
     // create entries with the same interval
     let dur = Duration::from_secs(5);
