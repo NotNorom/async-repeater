@@ -85,7 +85,7 @@ where
         F: FnOnce(E, RepeaterHandle<E>) -> Fut + Send + 'static + Clone,
         Fut: Future<Output = ()> + Send + 'static,
     {
-        let (tx, rx) = channel(128);
+        let (tx, rx) = channel(self.queue.capacity());
         let handle = RepeaterHandle::new(tx);
 
         tokio::spawn(self.handle_messages(rx, handle.clone(), callback));
