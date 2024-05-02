@@ -9,6 +9,6 @@ edition = "2021"
 futures-core = "0.3"
 tokio-stream = { version = "0.1", default-features = false }
 tokio-util = { version = "0.7", default-features = false, features = ["time"] }
-tokio = { version = "1.32", default-features = false, features = ["macros", "rt", "signal"] }
+tokio = { version = "1.37", default-features = false, features = ["macros", "rt", "signal"] }
 
 [dev-dependencies]
