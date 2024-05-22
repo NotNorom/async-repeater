@@ -2,6 +2,8 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::time::Duration;
 
+use crate::Delay;
+
 /// Entry for the Repeater
 pub trait RepeaterEntry {
     /// The type of key
@@ -13,8 +15,8 @@ pub trait RepeaterEntry {
     /// Duration after which the first repetition should start.
     ///
     /// If not implemented, the first repetition starts instantly.
-    fn delay(&self) -> Option<Duration> {
-        None
+    fn delay(&self) -> Delay {
+        Delay::None
     }
 
     /// Reset the delay

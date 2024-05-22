@@ -1,6 +1,6 @@
 use crate::{
     handle::{Message, RepeaterHandle},
-    RepeaterEntry,
+    Delay, RepeaterEntry,
 };
 use futures_core::ready;
 use std::{
@@ -8,6 +8,7 @@ use std::{
     future::Future,
     pin::Pin,
     task::{Context, Poll},
+    time::Instant,
 };
 use tokio::sync::mpsc::{channel, Receiver};
 use tokio_stream::{self, Stream, StreamExt};
@@ -41,7 +42,11 @@ where
     ///
     /// Insertion respects the delay() call
     pub fn insert(&mut self, e: E) {
-        let interval = if let Some(delay) = e.delay() { delay } else { e.when() };
+        let interval = match e.delay() {
+            Delay::Relative(dur) => dur,
+            Delay::Absolute(inst) => inst.duration_since(Instant::now()),
+            Delay::None => e.when(),
+        };
 
         if let Some((current_item, queue_key)) = self.entries.get_mut(&e.key()) {
             self.queue.reset(queue_key, interval);
@@ -113,7 +118,8 @@ where
                             self.insert(entry.clone());
 
                             // run callback once, right after insertion ONLY IF there is no delay
-                            if entry.delay().is_none() {
+
+                            if matches!(entry.delay(), Delay::None) {
                                 tokio::spawn((cb)(entry, handle));
                             }
                         },
