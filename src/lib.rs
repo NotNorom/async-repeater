@@ -15,3 +15,13 @@ pub enum Delay {
     Absolute(Instant),
     None,
 }
+
+impl From<Delay> for Duration {
+    fn from(value: Delay) -> Self {
+        match value {
+            Delay::Relative(dur) => dur,
+            Delay::Absolute(inst) => inst.duration_since(Instant::now()),
+            Delay::None => Duration::ZERO,
+        }
+    }
+}
