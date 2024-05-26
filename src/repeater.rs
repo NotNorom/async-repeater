@@ -8,7 +8,7 @@ use std::{
     future::Future,
     pin::Pin,
     task::{Context, Poll},
-    time::Instant,
+    time::SystemTime,
 };
 use tokio::sync::mpsc::{channel, Receiver};
 use tokio_stream::{self, Stream, StreamExt};
@@ -44,7 +44,7 @@ where
     pub fn insert(&mut self, e: E) {
         let interval = match e.delay() {
             Delay::Relative(dur) => dur,
-            Delay::Absolute(inst) => inst.duration_since(Instant::now()),
+            Delay::Absolute(inst) => inst.duration_since(SystemTime::now()).unwrap_or_else(|_| e.when()),
             Delay::None => e.when(),
         };
 

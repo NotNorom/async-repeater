@@ -2,7 +2,7 @@ mod entry;
 mod handle;
 mod repeater;
 
-use std::time::{Duration, Instant};
+use std::time::{Duration, SystemTime, SystemTimeError};
 
 pub use entry::RepeaterEntry;
 pub use handle::RepeaterHandle;
@@ -12,16 +12,18 @@ pub use repeater::Repeater;
 #[derive(Debug, Clone, Copy)]
 pub enum Delay {
     Relative(Duration),
-    Absolute(Instant),
+    Absolute(SystemTime),
     None,
 }
 
-impl From<Delay> for Duration {
-    fn from(value: Delay) -> Self {
+impl TryFrom<Delay> for Duration {
+    type Error = SystemTimeError;
+
+    fn try_from(value: Delay) -> Result<Duration, SystemTimeError> {
         match value {
-            Delay::Relative(dur) => dur,
-            Delay::Absolute(inst) => inst.duration_since(Instant::now()),
-            Delay::None => Duration::ZERO,
+            Delay::Relative(dur) => Ok(dur),
+            Delay::Absolute(timestamp) => timestamp.duration_since(SystemTime::now()),
+            Delay::None => Ok(Duration::ZERO),
         }
     }
 }
