@@ -42,6 +42,7 @@ where
     ///
     /// Insertion respects the delay() call
     pub fn insert(&mut self, e: E) {
+        // if there is a delay before the first run
         let interval = match e.delay() {
             Delay::Relative(dur) => dur,
             Delay::Absolute(inst) => inst.duration_since(SystemTime::now()).unwrap_or_else(|_| e.interval()),
@@ -49,9 +50,12 @@ where
         };
 
         if let Some((current_item, queue_key)) = self.entries.get_mut(&e.key()) {
+            // if an item with the same key already exists,
+            // then replace that item with the new one and set the timer to the new value as well
             self.queue.reset(queue_key, interval);
             *current_item = e;
         } else {
+            // if the item is new, insert it and the time at which to start
             let queue_key = self.queue.insert(e.key(), interval);
             self.entries.insert(e.key(), (e.clone(), queue_key));
         }
@@ -140,13 +144,11 @@ where
     /// Poll for a new item.
     ///
     /// If an item is available it will also be re-inserted.
-    /// Re-insertions ignore the delay and will only resspect the when.
+    /// Re-insertions ignore the delay and will only respect the interval.
     fn poll_next(&mut self, cx: &mut Context<'_>) -> Poll<Option<E>> {
         let entry_id: Option<E::Key> = ready!(self.queue.poll_expired(cx)).map(delay_queue::Expired::into_inner);
         if let Some(entry_id) = entry_id {
             let (entry, queue_key) = self.entries.get_mut(&entry_id).unwrap();
-
-
 
             let new_queue_key = self.queue.insert(entry.key(), entry.interval());
             *queue_key = new_queue_key;

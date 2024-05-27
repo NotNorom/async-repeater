@@ -12,9 +12,13 @@ pub trait RepeaterEntry {
     /// Duration after which the entry should be repeated
     fn interval(&self) -> Duration;
 
-    /// Duration after which the first repetition should start.
+    /// Duration after which the first repetition is run
     ///
-    /// If not implemented, the first repetition starts instantly.
+    /// An example: It's 2:57pm and we want to start a repetition with an interval of 60 seconds,
+    /// but also want to wait until it's exactly 3pm.
+    /// We'd either set the delay to be relative 180 seconds or specify the absolute unix time stamp.
+    ///
+    /// If not implemented, it returns Delay::None starting the repetition instantly
     fn delay(&self) -> Delay {
         Delay::None
     }
