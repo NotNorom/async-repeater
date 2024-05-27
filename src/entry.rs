@@ -19,11 +19,8 @@ pub trait RepeaterEntry {
         Delay::None
     }
 
-    /// Reset the delay
-    /// After calling this function, the next call to [`RepeaterEntry::delay`] should return `None`.
-    fn reset_delay(&mut self);
-
     /// To identify the entry.
+    ///
     /// We don't want to store the whole entry in the underlying queue,
     /// but only a key
     fn key(&self) -> Self::Key;

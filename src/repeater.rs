@@ -146,7 +146,7 @@ where
         if let Some(entry_id) = entry_id {
             let (entry, queue_key) = self.entries.get_mut(&entry_id).unwrap();
 
-            entry.reset_delay();
+
 
             let new_queue_key = self.queue.insert(entry.key(), entry.when());
             *queue_key = new_queue_key;
