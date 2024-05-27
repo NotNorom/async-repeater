@@ -44,8 +44,8 @@ where
     pub fn insert(&mut self, e: E) {
         let interval = match e.delay() {
             Delay::Relative(dur) => dur,
-            Delay::Absolute(inst) => inst.duration_since(SystemTime::now()).unwrap_or_else(|_| e.when()),
-            Delay::None => e.when(),
+            Delay::Absolute(inst) => inst.duration_since(SystemTime::now()).unwrap_or_else(|_| e.interval()),
+            Delay::None => e.interval(),
         };
 
         if let Some((current_item, queue_key)) = self.entries.get_mut(&e.key()) {
@@ -148,7 +148,7 @@ where
 
 
 
-            let new_queue_key = self.queue.insert(entry.key(), entry.when());
+            let new_queue_key = self.queue.insert(entry.key(), entry.interval());
             *queue_key = new_queue_key;
 
             return Poll::Ready(Some(entry.clone()));

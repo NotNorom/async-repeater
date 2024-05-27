@@ -10,7 +10,7 @@ pub trait RepeaterEntry {
     type Key: Hash + Eq + Unpin + Send + Debug;
 
     /// Duration after which the entry should be repeated
-    fn when(&self) -> Duration;
+    fn interval(&self) -> Duration;
 
     /// Duration after which the first repetition should start.
     ///

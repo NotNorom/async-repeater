@@ -22,7 +22,7 @@ impl Entry {
 impl RepeaterEntry for Entry {
     type Key = u8;
 
-    fn when(&self) -> Duration {
+    fn interval(&self) -> Duration {
         self.interval
     }
 
