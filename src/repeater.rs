@@ -8,7 +8,7 @@ use std::{
     future::Future,
     pin::Pin,
     task::{Context, Poll},
-    time::SystemTime,
+    time::{Duration, SystemTime},
 };
 use tokio::sync::mpsc::{channel, Receiver};
 use tokio_stream::{self, Stream, StreamExt};
@@ -46,7 +46,7 @@ where
         let interval = match e.delay() {
             Delay::Relative(dur) => dur,
             Delay::Absolute(inst) => inst.duration_since(SystemTime::now()).unwrap_or_else(|_| e.interval()),
-            Delay::None => e.interval(),
+            Delay::None => Duration::default(),
         };
 
         if let Some((current_item, queue_key)) = self.entries.get_mut(&e.key()) {
@@ -118,15 +118,7 @@ where
             tokio::select! {
                 Some(message) = rx.recv() => {
                     match message {
-                        Message::Insert(entry) => {
-                            self.insert(entry.clone());
-
-                            // run callback once, right after insertion ONLY IF there is no delay
-
-                            if matches!(entry.delay(), Delay::None) {
-                                tokio::spawn((cb)(entry, handle));
-                            }
-                        },
+                        Message::Insert(entry) => self.insert(entry.clone()),
                         Message::Remove(key) => self.remove(&key),
                         Message::Clear => { self.clear()},
                         Message::Stop => { break },
