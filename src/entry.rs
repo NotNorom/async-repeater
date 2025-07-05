@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use crate::Delay;
 
-/// Entry for the Repeater
+/// Entry for the [`Repeater`](crate::Repeater)
 pub trait RepeaterEntry {
     /// The type of key
     type Key: Hash + Eq + Unpin + Send + Debug;

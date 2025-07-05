@@ -1,3 +1,5 @@
+//! Tokio based library for repeating tasks with user defined durations and start times.
+
 mod entry;
 mod handle;
 mod repeater;
