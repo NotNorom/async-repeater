@@ -1,6 +1,6 @@
 use crate::{
-    handle::{Message, RepeaterHandle},
     Delay, RepeaterEntry,
+    handle::{Message, RepeaterHandle},
 };
 use futures_core::ready;
 use std::{
@@ -10,9 +10,9 @@ use std::{
     task::{Context, Poll},
     time::{Duration, SystemTime},
 };
-use tokio::sync::mpsc::{channel, Receiver};
+use tokio::sync::mpsc::{Receiver, channel};
 use tokio_stream::{self, Stream, StreamExt};
-use tokio_util::time::{delay_queue, DelayQueue};
+use tokio_util::time::{DelayQueue, delay_queue};
 
 /// Repeats structs after user defined Duration.
 pub struct Repeater<E>
@@ -49,15 +49,18 @@ where
             Delay::None => Duration::default(),
         };
 
-        if let Some((current_item, queue_key)) = self.entries.get_mut(&e.key()) {
-            // if an item with the same key already exists,
-            // then replace that item with the new one and set the timer to the new value as well
-            self.queue.reset(queue_key, interval);
-            *current_item = e;
-        } else {
-            // if the item is new, insert it and the time at which to start
-            let queue_key = self.queue.insert(e.key(), interval);
-            self.entries.insert(e.key(), (e.clone(), queue_key));
+        match self.entries.get_mut(&e.key()) {
+            Some((current_item, queue_key)) => {
+                // if an item with the same key already exists,
+                // then replace that item with the new one and set the timer to the new value as well
+                self.queue.reset(queue_key, interval);
+                *current_item = e;
+            }
+            _ => {
+                // if the item is new, insert it and the time at which to start
+                let queue_key = self.queue.insert(e.key(), interval);
+                self.entries.insert(e.key(), (e.clone(), queue_key));
+            }
         }
     }
 
